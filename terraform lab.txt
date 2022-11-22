@@ -1,0 +1,313 @@
+###################..................................TERRAFORM..............................######################################################
+###################..................................TERRAFORM..............................######################################################
+
+
+terraform install in linux amazon:-->>
+
+1- launch an EC2 instance in aws amazon linux machine image and open terminal/run below command to install terraform 
+
+sudo yum install -y yum-utils shadow-utils
+sudo yum-config-manager --add-repo https://rpm.releases.hashicorp.com/AmazonLinux/hashicorp.repo
+sudo yum -y install terraform
+
+terraform --version 
+
+2- create a directory and go inside the dir.
+
+mkdir dp
+cd dp/
+
+
+vi example.tf   -->> here we define infra
+-------------------------------------------------------------------------------------------------------------------------------
+provider "aws" {                                          ##-->> define provider name 
+  region     = "us-west-2"                                ##-->> define region where we want to deploy our server
+  access_key = "my-access-key"                            
+  secret_key = "my-secret-key"
+}
+
+resource "aws_instance" "web" {                           ##-->> here "web" name can be change but "aws_instance" resource name can't
+  ami           = "AMI ID mentioned here"                 ##-->> this is ami id/copy from console
+  instance_type = "t2.micro"                              ##-->> this is intance type we can choose any
+
+  tags = {
+    Name = "tag name mentioned here"                       ##-->> tag name we can choose any 
+  }
+}
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+save and exit
+
+
+teraform init 
+terraform plan   
+terraform apply
+
+NOTE- o/p-->> by default one instance created
+
+terraform destroy              ## delete everything
+
+############.................lab done successfully...............##############################################################################
+############.................lab done successfully...............##############################################################################
+
+
+##############################################################################################################################
+
+LAB-2 : CREATE 5 EC2 INSTANCES IN AWS 
+
+note- in above tf file we just add :  count = 5
+
+
+vi example.tf   -->> here we define infra
+--------------------------------------------------------------------------------------------------------------------------------
+provider "aws" {
+  region     = "ap-south-1"
+  access_key = "AKIAUXMDO42LS3MDTKXE"
+  secret_key = "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"
+}
+
+resource "aws_instance" "mywebserver" {                         ##-->> here "web" name can be change but "aws_instance" resource name can't
+  ami           = "ami-0a2457eba250ca23d"                       ##-->> this is ami id/copy from console
+  instance_type = "t2.micro"                                    ##-->> this is intance type we can choose any
+  count         = 5                                                                                                                      
+
+  tags = {
+    Name = "tag1"                                 ##-->> tag name we can choose any 
+  }
+}
+
+----------------------------------------------------------------------------------------------------------------------------------------------
+
+save and exit
+
+
+teraform init 
+terraform plan   
+terraform apply            ##-->> 5 instances created 
+
+terraform destroy          ##-->> delete all infra
+
+
+############################...lab done successfully..................#################################################################
+############################...lab done successfully..................#################################################################
+
+
+LAB-3: create ec2 instance by using filter and and not define specific AMI ID /used reference pass("web") data.aws_ami.ubuntu.id---------------see (1)
+
+vi example.tf 
+
+
+provider "aws" {
+  region     = "ap-south-1"
+  access_key = "AKIAUXMDO42LS3MDTKXE"
+  secret_key = "JuiTbGB7zW2HeuLU++chqTj9XJ7nP3Cyonj+X2Yt"
+}
+
+
+data "aws_ami" "ubuntu" {                                          ##-->> this is used under AMI ID   ----------(1)
+  most_recent = true                                               ##-->> used most recent image of ubuntu
+
+  filter {
+    name   = "name"
+    values = ["ubuntu/images/hvm-ssd/ubuntu-focal-20.04-amd64-server-*"]               ##-->> filter1/search this config. image of ubuntu
+  }
+
+  filter {
+    name   = "virtualization-type"                                                     ##--> filter2/search hvm type image of ubuntu
+    values = ["hvm"]
+  }
+
+  owners = ["099720109477"] # Canonical                        ## image owner id 
+}
+
+resource "aws_instance" "web" {                                 ##-->> here can't modifiy "web"/otherwise AMI ID must be define--------------VERY IMPORTANT
+  ami           = data.aws_ami.ubuntu.id                        ##-->> here: AMI ID not define //used refernce "web"// see ---------(1)
+  instance_type = "t2.micro"
+
+  tags = {
+    Name = "mytag"
+  }
+}
+
+
+#####################...............lab done successfully...........######################################################################
+#####################...............lab done successfully...........######################################################################
+
+
+LAB-4: CREATE VPC/SUBNET/NETWORK INTERFACE
+
+ vi example.tf 
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------
+                                                            
+provider "aws" {                                                    ##-->> provider is compulsory steps for each infra.
+  region     = "ap-south-1"
+  access_key = "AKIAUXMDO42LS3MDTKXE"
+  secret_key = "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"
+}
+
+                                                                    ## NOW CREATE VPC/SUBNET AND NETWORK INTERFACE
+
+resource "aws_vpc" "my_vpc" {                                       ## this is used in vpc_id  ----------------(1)
+  cidr_block = "172.16.0.0/16"
+
+  tags = {
+    Name = "tf-example"
+  }
+}
+
+resource "aws_subnet" "my_subnet" {                                 ##-->> this is used under subnet_id in next steps-------------------(2)
+  vpc_id            = aws_vpc.my_vpc.id                             ##-->> used resource and resource name for  vpc id ---------------see(1)
+  cidr_block        = "172.16.10.0/24"
+  availability_zone = "ap-south-1a"
+
+  tags = {
+    Name = "tf-example"
+  }
+}
+
+resource "aws_network_interface" "foo" {
+  subnet_id   = aws_subnet.my_subnet.id                  ##-->> resource type and resource name for subnet id / see---------(2)
+  private_ips = ["172.16.10.100"]
+ 
+tags = {
+    Name = "primary_network_interface"
+  }
+}
+
+-----------------------------------------------------------------------------------------------------------------------------------------------
+save & exit
+
+note- we can also check our code is correct or not before running by using below comands-
+
+terraformm validate 
+
+terraform init
+terraform plan
+terraform apply
+terraform destroy
+
+###################################......................lab done successfully.......................###########################################################
+###################################......................lab done successfully.......................###########################################################
+
+LAB:5- Resource: aws_key_pair
+
+vi example.tf
+--------------------------------------------------------------------------------------------------------------------------------------
+provider "aws" {
+  region     = "ap-south-1"
+  access_key = "AKIAUXMDO42LS3MDTKXE"
+  secret_key = "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"
+}
+
+resource "aws_instance" "mywebserver" {                         
+  ami           = "ami-0a2457eba250ca23d"                       
+  instance_type = "t2.micro"                                    
+  key_name      = "key1234"                    ##-->> this is key pair name which we check on our aws console on left side option available: keypairs  (network & security)                                                                                                            
+                                               ##-->> we can also findout keypair name under instance detail page 
+  tags = {
+    Name = "tag1"                              
+  }
+}
+
+----------------------------------------------------------------------------------------------------------------------------------------------------
+save & exit vi editor
+
+terraform init
+terraform plan
+terraform apply 
+terraform destroy
+
+#########################.....................lab done successfully...............................#############################
+
+
+LAB-6: Single EIP associated with an instance
+
+vi example.tf
+
+
+
+provider "aws" {
+  region     = "ap-south-1"
+  access_key = "AKIAUXMDO42LS3MDTKXE"
+  secret_key = "JuiTbGB7zW2HeuLU++chqTj9XJ7nP3Cyonj+X2Yt"
+}
+
+resource "aws_instance" "web" {                         
+  ami           = "ami-0a2457eba250ca23d"                       
+  instance_type = "t2.micro"                                                                                                                                                           
+
+  tags = {
+    Name = "tag1"                              
+  }
+resource "aws_eip" "lb" {                                    ##-->> create EIP for an instance
+  instance = aws_instance.web.id
+  vpc      = true
+}
+
+
+#####################....................lab done successfully........................##############################################################33
+#####################....................lab done successfully........................##############################################################33
+
+LAB-7: (method-1)-
+AMI CREATION BY SNAPSHOT
+
+note1- take snapshot for an instance first by console
+
+
+provider "aws" {
+  region     = "ap-south-1"
+  access_key = "AKIAUXMDO42LS3MDTKXE"
+  secret_key = "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"
+}
+
+resource "aws_instance" "web" {                         
+  ami           = "ami-0a2457eba250ca23d"                       
+  instance_type = "t2.micro"                                                                                                                                                           
+
+  tags = {
+    Name = "tag1"                              
+  }
+}
+
+resource "aws_ami" "example" {                                       ##-->> reference name : example can be change
+  name                = "terraform-example"                          ##-->> this is AMI name 
+  virtualization_type = "hvm"
+  root_device_name    = "/dev/xvda"
+  imds_support        = "v2.0" # Enforce usage of IMDSv2. You can safely remove this line if your application explicitly doesn't support it.
+  ebs_block_device {
+    device_name = "/dev/xvda"
+    snapshot_id = "snap-0aa13646430a48d20"                            ##-->> copy this id  from snapshot created in aws console gui
+    volume_size = 8
+  }
+}
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------
+NOTE- go to AMI'S option on left side to check the created ami details
+-------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Method-2 AMI creation by instance 
+
+provider "aws" {
+  region     = "ap-south-1"
+  access_key = "AKIAUXMDO42LS3MDTKXE"
+  secret_key = "JuiTbGB7zW2HeuLU++chqTj9XJ7nP3Cyonj+X2Yt"
+}
+
+resource "aws_ami_from_instance" "example" {                     ##-->> here reference pass : "example" can be change                 
+  name               = "newami"                                  ##-->> ami name we can choose any name
+  source_instance_id = "i-085d7ea7e51334d35"                     ##-->> copy the instance id fron aws console which is running
+}
+
+###############################...............lab done successfully...................########################################################
+
+
+
+
+
+
+
+
+
+
+
